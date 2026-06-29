@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Qur'an Revision Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import{getFirestore,doc,getDoc,setDoc}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig={
+  apiKey:"AIzaSyDub4Wxda5KA3rT8VotW3Eii6BrVu2xVcQ",
+  authDomain:"qur-an-revision-tracker.firebaseapp.com",
+  projectId:"qur-an-revision-tracker",
+  storageBucket:"qur-an-revision-tracker.firebasestorage.app",
+  messagingSenderId:"910891744773",
+  appId:"1:910891744773:web:d3e9f249da9f1c065f666c"
+};
+const fbApp=initializeApp(firebaseConfig);
+const db=getFirestore(fbApp);
+window._fbDb=db;
+window._fbDoc=doc;
+window._fbGetDoc=getDoc;
+window._fbSetDoc=setDoc;
+window._fbReady=true;
+window.dispatchEvent(new Event('fbready'));
+</script>
+<style>
+:root{--bg:#0f1117;--sur:#181c27;--sur2:#1e2333;--bd:#2a3045;--tx:#e8eaf0;--mu:#7a8099;--low:#22c55e;--lbg:#0d2818;--lbd:#166534;--med:#f59e0b;--mbg:#271d07;--mbd:#92400e;--hi:#ef4444;--hbg:#280d0d;--hbd:#991b1b;--acc:#6366f1;--acc2:#818cf8;--gold:#d4af37;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;overflow-x:hidden;}
+.topbar{position:sticky;top:0;z-index:100;background:rgba(15,17,23,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--bd);padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:56px;}
+.topbar-title{font-family:'Amiri',serif;font-size:1.2rem;color:var(--gold);}
+.topbar-sub{font-size:0.68rem;color:var(--mu);}
+.sync-status{font-size:0.68rem;display:flex;align-items:center;gap:5px;}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--mu);transition:background 0.3s;}
+.sync-dot.synced{background:var(--low);}
+.sync-dot.syncing{background:var(--med);animation:blink 0.8s infinite;}
+.sync-dot.error{background:var(--hi);}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.bottomnav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(24,28,39,0.97);backdrop-filter:blur(12px);border-top:1px solid var(--bd);display:flex;padding-bottom:env(safe-area-inset-bottom);}
+.mhdr.l{background:var(--lbg);border:1px solid var(--lbd);}
+.mhdr.l .cnt{color:var(--low);}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 2px 8px;background:none;border:none;cursor:pointer;color:var(--mu);font-size:0.58rem;font-family:'DM Sans',sans-serif;gap:3px;transition:color 0.2s;}
+.nav-btn.active{color:var(--acc2);}
+.nav-btn svg{width:22px;height:22px;}
+.page{display:none;padding:14px 14px 82px;}
+.page.active{display:block;}
+.hero{background:linear-gradient(135deg,#1a1f35,#0f1117);border:1px solid var(--bd);border-radius:16px;padding:18px;margin-bottom:14px;position:relative;overflow:hidden;}
+.hero::before{content:'';position:absolute;top:-40px;right:-20px;width:120px;height:120px;background:radial-gradient(circle,rgba(99,102,241,0.15),transparent 70%);border-radius:50%;}
+.hero h2{font-family:'Amiri',serif;font-size:1.45rem;color:var(--gold);margin-bottom:3px;}
+.hero p{font-size:0.78rem;color:var(--mu);}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+.stat-card{background:var(--sur);border:1px solid var(--bd);border-radius:12px;padding:14px 10px;text-align:center;}
+.stat-val{font-size:1.9rem;font-weight:700;line-height:1;}
+.stat-lbl{font-size:0.62rem;color:var(--mu);margin-top:4px;}
+.stat-card.low .stat-val{color:var(--low);}
+.stat-card.med .stat-val{color:var(--med);}
+.stat-card.hi .stat-val{color:var(--hi);}
+.reset-box{border-radius:14px;padding:16px;margin-bottom:14px;}
+.reset-box.r-low{background:var(--sur);border:1px solid var(--lbd);}
+.reset-box.r-med{background:var(--sur);border:1px solid var(--mbd);}
+.reset-box.r-hi{background:var(--sur);border:1px solid var(--hbd);}
+.reset-box h3{font-size:0.85rem;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.reset-box.r-low h3{color:var(--low);}
+.reset-box.r-med h3{color:var(--med);}
+.reset-box.r-hi h3{color:var(--hi);}
+.reset-box p{font-size:0.74rem;color:var(--mu);margin-bottom:12px;line-height:1.5;}
+.btn-reset{width:100%;font-weight:700;border:none;border-radius:10px;padding:13px 16px;font-size:0.88rem;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity 0.2s;}
+.btn-reset:active{opacity:0.8;}
+.btn-reset.r-low{background:var(--low);color:#000;}
+.btn-reset.r-med{background:var(--med);color:#000;}
+.btn-reset.r-hi{background:var(--hi);color:#fff;}
+.btn-reset.confirm{background:#ef4444 !important;color:#fff !important;animation:pulse 0.35s ease;}
+@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.03)}100%{transform:scale(1)}}
+.sec-lbl{font-size:0.68rem;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:0.08em;margin:14px 0 8px 2px;}
+.sum-list{display:flex;flex-direction:column;gap:6px;}
+.sum-item{background:var(--sur);border:1px solid var(--bd);border-radius:10px;padding:11px 13px;display:flex;align-items:center;gap:10px;cursor:pointer;}
+.sum-item:active{border-color:var(--acc);}
+.s-num{font-size:0.68rem;color:var(--mu);width:22px;flex-shrink:0;}
+.s-name{flex:1;font-size:0.88rem;font-weight:500;}
+.badges{display:flex;gap:5px;}
+.badge{font-size:0.62rem;font-weight:700;padding:2px 7px;border-radius:20px;}
+.badge.low{background:var(--lbg);color:var(--low);border:1px solid var(--lbd);}
+.badge.med{background:var(--mbg);color:var(--med);border:1px solid var(--mbd);}
+.badge.hi{background:var(--hbg);color:var(--hi);border:1px solid var(--hbd);}
+.search-bar{background:var(--sur);border:1px solid var(--bd);border-radius:10px;padding:10px 13px;display:flex;align-items:center;gap:8px;margin-bottom:13px;}
+.search-bar input{background:none;border:none;outline:none;color:var(--tx);font-family:'DM Sans',sans-serif;font-size:0.88rem;flex:1;}
+.search-bar input::placeholder{color:var(--mu);}
+.surah-list{display:flex;flex-direction:column;gap:6px;}
+.si{background:var(--sur);border:1px solid var(--bd);border-radius:12px;overflow:hidden;transition:border-color 0.15s;}
+.si.open{border-color:var(--acc);}
+.si-hdr{padding:11px 13px;display:flex;align-items:center;gap:10px;cursor:pointer;}
+.si-num{background:var(--sur2);border-radius:6px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:0.68rem;color:var(--mu);flex-shrink:0;font-weight:600;}
+.si-info{flex:1;}
+.si-name{font-size:0.88rem;font-weight:600;}
+.si-meta{font-size:0.68rem;color:var(--mu);margin-top:1px;}
+.exp-ico{color:var(--mu);transition:transform 0.2s;flex-shrink:0;}
+.si.open .exp-ico{transform:rotate(180deg);}
+.ayah-list{border-top:1px solid var(--bd);}
+.ar{display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:8px;padding:8px 11px;border-bottom:1px solid rgba(42,48,69,0.5);}
+.ar:last-child{border-bottom:none;}
+.a-num{font-size:0.72rem;color:var(--mu);text-align:center;font-weight:600;}
+.m-btns{display:flex;gap:4px;}
+.mb{width:31px;height:31px;border-radius:7px;border:1px solid var(--bd);background:var(--sur2);color:var(--mu);font-size:0.72rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.12s;font-family:'DM Sans',sans-serif;}
+.mb.a0{background:var(--sur2);color:var(--mu);border-color:var(--bd);}
+.mb.a1{background:var(--lbg);color:var(--low);border-color:var(--low);}
+.mb.a2{background:var(--mbg);color:var(--med);border-color:var(--med);}
+.mb.a3{background:var(--hbg);color:var(--hi);border-color:var(--hi);}
+.lp{font-size:0.62rem;font-weight:700;padding:3px 8px;border-radius:20px;min-width:48px;text-align:center;}
+.lp.low{background:var(--lbg);color:var(--low);border:1px solid var(--lbd);}
+.lp.med{background:var(--mbg);color:var(--med);border:1px solid var(--mbd);}
+.lp.hi{background:var(--hbg);color:var(--hi);border:1px solid var(--hbd);}
+.lp.none{background:transparent;color:transparent;border:1px solid transparent;}
+.mhdr{border-radius:14px;padding:14px 16px;margin-bottom:13px;}
+.mhdr.h{background:var(--hbg);border:1px solid var(--hbd);}
+.mhdr.m{background:var(--mbg);border:1px solid var(--mbd);}
+.mhdr .cnt{font-size:2rem;font-weight:700;line-height:1;}
+.mhdr.h .cnt{color:var(--hi);}
+.mhdr.m .cnt{color:var(--med);}
+.mhdr h2{font-size:1rem;font-weight:600;}
+.mcard{background:var(--sur);border:1px solid var(--bd);border-radius:12px;margin-bottom:8px;overflow:hidden;}
+.mcard-in{padding:12px 13px;display:flex;align-items:center;gap:12px;}
+.mcard-sub{font-size:0.73rem;color:var(--mu);flex:1;}
+.mcard-sub strong{display:block;font-size:0.88rem;color:var(--tx);font-weight:600;}
+.marked-date{display:block;font-size:0.65rem;color:var(--mu);margin-top:2px;}
+.mcard-an{font-size:1.4rem;font-weight:700;width:46px;text-align:center;flex-shrink:0;}
+.mcard.hc .mcard-an{color:var(--hi);}
+.mcard.mc .mcard-an{color:var(--med);}
+.fix-row{border-top:1px solid var(--bd);padding:8px 13px;display:flex;align-items:center;gap:8px;}
+.pri-row{border-top:1px solid var(--bd);padding:7px 13px;display:flex;align-items:center;gap:7px;}
+.pri-lbl{font-size:0.65rem;color:var(--mu);flex-shrink:0;}
+.pri-pills{display:flex;gap:5px;flex:1;}
+.pri-pill{flex:1;font-size:0.65rem;font-weight:700;padding:4px 0;border-radius:20px;border:1px solid var(--bd);background:var(--sur2);color:var(--mu);cursor:pointer;font-family:'DM Sans',sans-serif;text-align:center;transition:all 0.12s;}
+.pri-pill.active-low{background:var(--lbg);color:var(--low);border-color:var(--low);}
+.pri-pill.active-med{background:var(--mbg);color:var(--med);border-color:var(--med);}
+.pri-pill.active-hi{background:var(--hbg);color:var(--hi);border-color:var(--hi);}
+.pri-pill.auto-badge{font-size:0.58rem;color:var(--mu);border-style:dashed;}
+.fix-lbl{font-size:0.68rem;color:var(--mu);}
+.fix-dt{flex:1;background:var(--sur2);border:1px solid var(--bd);border-radius:6px;padding:5px 8px;color:var(--tx);font-family:'DM Sans',sans-serif;font-size:0.73rem;outline:none;}
+.fix-btn{font-size:0.68rem;padding:4px 10px;border-radius:20px;border:none;cursor:pointer;font-weight:600;font-family:'DM Sans',sans-serif;background:var(--sur2);color:var(--mu);border:1px solid var(--bd);}
+.empty{text-align:center;padding:56px 20px;color:var(--mu);}
+.empty svg{width:46px;height:46px;margin-bottom:12px;opacity:0.3;}
+.empty p{font-size:0.84rem;line-height:1.6;}
+.toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%) translateY(16px);font-weight:700;font-size:0.78rem;padding:10px 16px;border-radius:100px;z-index:999;opacity:0;transition:all 0.25s;pointer-events:none;white-space:nowrap;display:flex;align-items:center;gap:10px;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto;}
+.toast-undo{background:rgba(255,255,255,0.22);border:none;border-radius:20px;color:inherit;font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:700;padding:3px 10px;cursor:pointer;flex-shrink:0;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.loading{position:fixed;inset:0;background:var(--bg);z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+.loading.hidden{display:none;}
+.spinner{width:36px;height:36px;border:3px solid var(--bd);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading p{font-size:0.84rem;color:var(--mu);}
+.no-res{text-align:center;padding:40px;color:var(--mu);font-size:0.84rem;}
+.hist-filter{background:var(--sur);border:1px solid var(--bd);border-radius:20px;color:var(--mu);font-size:0.72rem;font-weight:600;padding:5px 12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.15s;}
+.hist-filter.active{background:var(--acc);border-color:var(--acc);color:#fff;}
+.hist-day{background:var(--sur);border:1px solid var(--bd);border-radius:12px;padding:12px 13px;margin-bottom:8px;}
+.hist-day-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.hist-day-date{font-size:0.78rem;font-weight:700;color:var(--tx);}
+.hist-day-total{font-size:0.72rem;color:var(--mu);}
+.hist-surah-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.hist-surah-row:last-child{margin-bottom:0;}
+.hist-surah-name{font-size:0.72rem;color:var(--mu);width:90px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hist-dots{display:flex;flex-wrap:wrap;gap:4px;flex:1;}
+.hist-dot{width:8px;height:8px;border-radius:50%;}
+.hist-dot.low{background:var(--low);}
+.hist-dot.med{background:var(--med);}
+.hist-dot.hi{background:var(--hi);}
+.hist-empty{text-align:center;color:var(--mu);font-size:0.8rem;padding:24px;background:var(--sur);border:1px solid var(--bd);border-radius:12px;}
+::-webkit-scrollbar{width:3px;}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:4px;}
+.pg-card{background:var(--sur);border:1px solid var(--bd);border-radius:14px;padding:14px 15px;margin-bottom:8px;cursor:pointer;transition:border-color 0.15s;}
+.pg-card:active{border-color:var(--acc);}
+.pg-top{display:flex;align-items:center;gap:12px;}
+.pg-num{background:var(--sur2);border-radius:8px;width:46px;height:46px;display:flex;align-items:center;justify-content:center;flex-direction:column;flex-shrink:0;}
+.pg-num span{font-size:1.2rem;font-weight:700;line-height:1;color:var(--gold);}
+.pg-num small{font-size:0.52rem;color:var(--mu);text-transform:uppercase;letter-spacing:0.05em;}
+.pg-info{flex:1;min-width:0;}
+.pg-surahs{font-size:0.72rem;color:var(--mu);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pg-bar-wrap{margin-top:10px;background:var(--sur2);border-radius:6px;height:6px;overflow:hidden;}
+.pg-bar{height:100%;border-radius:6px;transition:width 0.3s;}
+.pg-sort{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+.pg-sort-btn{background:var(--sur);border:1px solid var(--bd);border-radius:20px;color:var(--mu);font-size:0.68rem;font-weight:600;padding:5px 12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.15s;}
+.pg-sort-btn.active{background:var(--acc);border-color:var(--acc);color:#fff;}
+.pg-rank{font-size:0.62rem;color:var(--mu);font-weight:700;width:18px;flex-shrink:0;text-align:center;}
+.pg-ayah-list{border-top:1px solid var(--bd);display:none;padding:6px 0 2px;}
+.pg-card.open .pg-ayah-list{display:block;}
+.pg-card.open{border-color:var(--acc);}
+.pg-ayah-row{display:flex;align-items:center;gap:8px;padding:6px 12px 6px 10px;border-bottom:1px solid rgba(42,48,69,0.4);}
+.pg-ayah-row:last-child{border-bottom:none;}
+.pg-chevron{color:var(--mu);transition:transform 0.2s;flex-shrink:0;margin-left:auto;}
+.pg-card.open .pg-chevron{transform:rotate(180deg);}
+</style>
+</head>
+<body>
+
+<!-- PIN SCREEN -->
+<div id="pin-screen" style="position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:32px;">
+  <div style="font-family:'Amiri',serif;font-size:2rem;color:var(--gold);text-align:center;">القرآن الكريم</div>
+  <div style="font-size:0.85rem;color:var(--mu);text-align:center;">Enter your PIN to continue</div>
+  <div id="pin-dots" style="display:flex;gap:14px;margin:4px 0;">
+    <div class="pdot"></div><div class="pdot"></div><div class="pdot"></div>
+    <div class="pdot"></div><div class="pdot"></div><div class="pdot"></div>
+  </div>
+  <div id="pin-error" style="font-size:0.78rem;color:var(--hi);height:18px;text-align:center;"></div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:240px;">
+    <button class="pkey" onclick="pinKey('1')">1</button>
+    <button class="pkey" onclick="pinKey('2')">2</button>
+    <button class="pkey" onclick="pinKey('3')">3</button>
+    <button class="pkey" onclick="pinKey('4')">4</button>
+    <button class="pkey" onclick="pinKey('5')">5</button>
+    <button class="pkey" onclick="pinKey('6')">6</button>
+    <button class="pkey" onclick="pinKey('7')">7</button>
+    <button class="pkey" onclick="pinKey('8')">8</button>
+    <button class="pkey" onclick="pinKey('9')">9</button>
+    <button class="pkey" onclick="pinKey('backspace')" style="font-size:1.2rem;">⌫</button>
+    <button class="pkey" onclick="pinKey('0')">0</button>
+    <button class="pkey" onclick="pinKey('enter')" style="background:var(--acc);color:#fff;font-size:0.75rem;">OK</button>
+  </div>
+</div>
+
+<style>
+.pdot{width:14px;height:14px;border-radius:50%;background:var(--bd);transition:background 0.15s;}
+.pdot.filled{background:var(--gold);}
+.pkey{background:var(--sur);border:1px solid var(--bd);border-radius:12px;color:var(--tx);font-size:1.3rem;font-weight:600;font-family:'DM Sans',sans-serif;height:64px;cursor:pointer;transition:background 0.12s;}
+.pkey:active{background:var(--sur2);}
+</style>
+
+<div class="loading" id="loading">
+  <div class="spinner"></div>
+  <p>Loading your progress…</p>
+</div>
+
+<div class="topbar">
+  <div>
+    <div class="topbar-title">القرآن الكريم</div>
+    <div class="topbar-sub">Revision Tracker</div>
+  </div>
+  <div class="sync-status">
+    <div class="sync-dot" id="sync-dot"></div>
+    <span id="sync-lbl" style="color:var(--mu)">Loading</span>
+  </div>
+</div>
+
+<!-- SUMMARY -->
+<div id="page-summary" class="page active">
+  <div class="hero">
+    <h2>Mistakes Summary</h2>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card hi"><div class="stat-val" id="t-hi">—</div><div class="stat-lbl">🔴 High</div></div>
+    <div class="stat-card med"><div class="stat-val" id="t-med">—</div><div class="stat-lbl">🟡 Medium</div></div>
+    <div class="stat-card low"><div class="stat-val" id="t-low">—</div><div class="stat-lbl">🟢 Low</div></div>
+  </div>
+  <div class="sec-lbl">Surahs with mistakes</div>
+  <div class="sum-list" id="sum-list"></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-top:20px;margin-bottom:0;">
+    <div class="sec-lbl" style="margin-top:0;">Daily Mistakes History</div>
+    <button id="reset-graph-btn" onclick="resetGraphs()" style="background:none;border:none;color:var(--hi);font-size:0.72rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;padding:4px 8px;border-radius:6px;border:1px solid var(--hbd);">Reset</button>
+  </div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+    <button class="hist-filter active" onclick="setHistFilter(7,this)">7 days</button>
+    <button class="hist-filter" onclick="setHistFilter(14,this)">14 days</button>
+    <button class="hist-filter" onclick="setHistFilter(30,this)">30 days</button>
+    <button class="hist-filter" onclick="setHistFilter(0,this)">All time</button>
+  </div>
+  <div id="hist-wrap"></div>
+</div>
+
+<!-- SURAHS -->
+<div id="page-surahs" class="page">
+  <div style="background:var(--sur);border:1px solid var(--bd);border-radius:10px;padding:10px 13px;display:flex;align-items:center;gap:10px;margin-bottom:13px;">
+    <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="color:var(--mu);flex-shrink:0"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+    <span style="font-size:0.78rem;color:var(--mu);flex-shrink:0;">Session date:</span>
+    <input type="date" id="session-date" style="background:none;border:none;outline:none;color:var(--tx);font-family:'DM Sans',sans-serif;font-size:0.82rem;flex:1;" onchange="updateSessionDate()">
+    <button onclick="resetSessionDate()" style="background:none;border:none;color:var(--mu);font-size:0.72rem;cursor:pointer;font-family:'DM Sans',sans-serif;flex-shrink:0;">Today</button>
+  </div>
+  <div class="search-bar">
+    <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="text" id="s-search" placeholder="Search Surah…" oninput="filterSurahs()">
+  </div>
+  <div class="surah-list" id="surah-list"></div>
+  <div class="no-res" id="no-res" style="display:none">No surahs found</div>
+</div>
+
+<!-- LOW -->
+<div id="page-low" class="page">
+  <div class="mhdr l"><div><div class="cnt" id="cnt-low">—</div><h2>Low Priority</h2></div></div>
+  <div class="reset-box r-low">
+    <h3><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>Reset Low Mistakes</h3>
+    <button class="btn-reset r-low" id="btn-low" onclick="doReset('low',1,'btn-low')">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+      Reset All Low Mistakes
+    </button>
+  </div>
+  <div id="list-low"></div>
+</div>
+
+<!-- HIGH -->
+<div id="page-high" class="page">
+  <div class="mhdr h"><div><div class="cnt" id="cnt-hi">—</div><h2>High Priority</h2></div></div>
+  <div class="reset-box r-hi">
+    <h3><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>Reset High Mistakes</h3>
+    <button class="btn-reset r-hi" id="btn-hi" onclick="doReset('high',3,'btn-hi')">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+      Reset All High Mistakes
+    </button>
+  </div>
+  <div id="list-hi"></div>
+</div>
+
+<!-- MEDIUM -->
+<div id="page-med" class="page">
+  <div class="mhdr m"><div><div class="cnt" id="cnt-med">—</div><h2>Medium Priority</h2></div></div>
+  <div class="reset-box r-med">
+    <h3><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>Reset Medium Mistakes</h3>
+    <button class="btn-reset r-med" id="btn-med" onclick="doReset('med',2,'btn-med')">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+      Reset All Medium Mistakes
+    </button>
+  </div>
+  <div id="list-med"></div>
+</div>
+
+<!-- PAGES TO REVIEW -->
+<div id="page-pages" class="page">
+  <div class="hero">
+    <h2>Pages to Review</h2>
+    <p>Pages ranked by mistake density</p>
+  </div>
+  <div class="pg-sort">
+    <button class="pg-sort-btn active" onclick="setPgSort('total',this)">Most Mistakes</button>
+    <button class="pg-sort-btn" onclick="setPgSort('high',this)">High Priority</button>
+    <button class="pg-sort-btn" onclick="setPgSort('page',this)">Page Order</button>
+  </div>
+  <div id="pages-list"></div>
+</div>
+
+<div class="bottomnav">
+  <button class="nav-btn active" onclick="nav('summary',this)">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Summary
+  </button>
+  <button class="nav-btn" onclick="nav('surahs',this)">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>Surahs
+  </button>
+  <button class="nav-btn" onclick="nav('high',this)">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>High
+  </button>
+  <button class="nav-btn" onclick="nav('med',this)">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>Medium
+  </button>
+  <button class="nav-btn" onclick="nav('low',this)">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg>Low
+  </button>
+  <button class="nav-btn" onclick="nav('pages',this)">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>Pages
+  </button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SURAHS=[[2,"Al-Baqarah",286],[3,"Aal-E-Imran",200],[4,"An-Nisa",176],[5,"Al-Maidah",120],[6,"Al-Anam",165],[7,"Al-Araf",206],[8,"Al-Anfal",75],[9,"At-Tawbah",129],[10,"Yunus",109],[11,"Hud",123],[12,"Yusuf",111],[13,"Ar-Rad",43],[14,"Ibrahim",52],[15,"Al-Hijr",99],[16,"An-Nahl",128],[17,"Al-Isra",111],[18,"Al-Kahf",110],[19,"Maryam",98],[20,"Ta-Ha",135],[21,"Al-Anbiya",112],[22,"Al-Hajj",78],[23,"Al-Muminun",118],[24,"An-Nur",64],[25,"Al-Furqan",77],[26,"Ash-Shuara",227],[27,"An-Naml",93],[28,"Al-Qasas",88],[29,"Al-Ankabut",69],[30,"Ar-Rum",60],[31,"Luqman",34],[32,"As-Sajdah",30],[33,"Al-Ahzab",73],[34,"Saba",54],[35,"Fatir",45],[36,"Ya-Sin",83],[37,"As-Saffat",182],[38,"Sad",88],[39,"Az-Zumar",75],[40,"Ghafir",85],[41,"Fussilat",54],[42,"Ash-Shura",53],[43,"Az-Zukhruf",89],[44,"Ad-Dukhan",59],[45,"Al-Jathiyah",37],[46,"Al-Ahqaf",35],[47,"Muhammad",38],[48,"Al-Fath",29],[49,"Al-Hujurat",18],[50,"Qaf",45],[51,"Adh-Dhariyat",60],[52,"At-Tur",49],[53,"An-Najm",62],[54,"Al-Qamar",55],[55,"Ar-Rahman",78],[56,"Al-Waqiah",96],[57,"Al-Hadid",29],[58,"Al-Mujadila",22],[59,"Al-Hashr",24],[60,"Al-Mumtahanah",13],[61,"As-Saf",14],[62,"Al-Jumuah",11],[63,"Al-Munafiqun",11],[64,"At-Taghabun",18],[65,"At-Talaq",12],[66,"At-Tahrim",12],[67,"Al-Mulk",30],[68,"Al-Qalam",52],[69,"Al-Haqqah",52],[70,"Al-Maarij",44],[71,"Nuh",28],[72,"Al-Jinn",28],[73,"Al-Muzzammil",20],[74,"Al-Muddaththir",56],[75,"Al-Qiyamah",40],[76,"Al-Insan",31],[77,"Al-Mursalat",50],[78,"An-Naba",40],[79,"An-Naziat",46],[80,"Abasa",42],[81,"At-Takwir",29],[82,"Al-Infitar",19],[83,"Al-Mutaffifin",36],[84,"Al-Inshiqaq",25],[85,"Al-Buruj",22],[86,"At-Tariq",17],[87,"Al-Ala",19],[88,"Al-Ghashiyah",26],[89,"Al-Fajr",30],[90,"Al-Balad",20],[91,"Ash-Shams",15],[92,"Al-Layl",21],[93,"Ad-Duha",11],[94,"Ash-Sharh",8],[95,"At-Tin",8],[96,"Al-Alaq",19],[97,"Al-Qadr",5],[98,"Al-Bayyinah",8],[99,"Az-Zalzalah",8],[100,"Al-Adiyat",11],[101,"Al-Qariah",11],[102,"At-Takathur",8],[103,"Al-Asr",3],[104,"Al-Humazah",9],[105,"Al-Fil",5],[106,"Quraysh",4],[107,"Al-Maun",7],[108,"Al-Kawthar",3],[109,"Al-Kafirun",6],[110,"An-Nasr",3],[111,"Al-Masad",5],[112,"Al-Ikhlas",4],[113,"Al-Falaq",5],[114,"An-Naas",6]];
+
+let D={}, FD={}, openNum=null, saveT=null;
+const confirmState={}, confirmTimer={};
+
+// ── FIREBASE SYNC ─────────────────────────────────────────────────────────────
+const DOC_ID='user_data';
+
+function setSync(state,label){
+  const dot=document.getElementById('sync-dot'),lbl=document.getElementById('sync-lbl');
+  dot.className='sync-dot '+state;
+  lbl.textContent=label;
+  lbl.style.color=state==='synced'?'var(--low)':state==='syncing'?'var(--med)':state==='error'?'var(--hi)':'var(--mu)';
+}
+
+async function waitForFb(){
+  if(window._fbReady)return;
+  return new Promise(res=>window.addEventListener('fbready',res,{once:true}));
+}
+
+// Only save ayahs that have actual data
+function compactD(){
+  const out={};
+  // Always preserve graph history
+  if(D._hist2) out._hist2=D._hist2;
+  for(const sn of Object.keys(D)){
+    if(sn==='_hist2') continue;
+    for(const an of Object.keys(D[sn])){
+      const e=D[sn][an];
+      const hasData=e.streak>0||e.td>0||(e.dayHist&&Object.keys(e.dayHist).length>0)||e.md||e.minLevel;
+      if(hasData){
+        if(!out[sn])out[sn]={};
+        out[sn][an]=e;
+      }
+    }
+  }
+  return out;
+}
+
+// Only save fix dates that are actually set
+function compactFD(){
+  const out={};
+  for(const sn of Object.keys(FD)){
+    for(const an of Object.keys(FD[sn])){
+      const v=FD[sn][an];
+      if(v){
+        if(!out[sn])out[sn]={};
+        out[sn][an]=v;
+      }
+    }
+  }
+  return out;
+}
+
+async function cloudLoad(){
+  setSync('syncing','Loading…');
+  try{
+    await waitForFb();
+    const ref=window._fbDoc(window._fbDb,'tracker',DOC_ID);
+    const snap=await Promise.race([
+      window._fbGetDoc(ref),
+      new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),6000))
+    ]);
+    if(snap.exists()){
+      const data=snap.data();
+      if(data.D) D=typeof data.D==='string'?JSON.parse(data.D):data.D;
+      if(data.FD) FD=typeof data.FD==='string'?JSON.parse(data.FD):data.FD;
+    }
+    setSync('synced','Saved');
+  }catch(e){
+    try{
+      const d=localStorage.getItem('qt_data_bk');
+      const f=localStorage.getItem('qt_fix_bk');
+      if(d) D=JSON.parse(d);
+      if(f) FD=JSON.parse(f);
+    }catch(_){}
+    setSync('error','Offline — using local backup');
+  }
+  initData();
+}
+
+async function cloudSave(){
+  setSync('syncing','Saving…');
+  try{localStorage.setItem('qt_data_bk',JSON.stringify(D));localStorage.setItem('qt_fix_bk',JSON.stringify(FD));}catch(_){}
+  try{
+    await waitForFb();
+    const ref=window._fbDoc(window._fbDb,'tracker',DOC_ID);
+    await window._fbSetDoc(ref,{D:JSON.stringify(compactD()),FD:JSON.stringify(compactFD())});
+    setSync('synced','Saved ✓');
+  }catch(e){
+    console.error('Firebase SAVE error:',e.code,e.message);
+    setSync('error','Firebase unavailable: '+(e.code||e.message));
+  }
+}
+
+function save(){clearTimeout(saveT);saveT=setTimeout(cloudSave,800);}
+
+function initData(){
+  for(const[n,,c]of SURAHS){
+    const sn=String(n);
+    if(!D[sn])D[sn]={};
+    // Don't pre-fill FD with empty objects — only create on demand
+    for(let a=1;a<=c;a++){
+      const sa=String(a);
+      if(!D[sn][sa])D[sn][sa]={streak:0,td:0,tdate:null,lastMistakeDate:null};
+      // Migrate: ensure dayHist exists
+      const e=D[sn][sa];
+      if(!e.dayHist)e.dayHist={};
+      // Archive td into dayHist if it was recorded on a specific date
+      if(e.tdate&&e.td!=null&&e.td>0&&!e.dayHist[e.tdate]){
+        e.dayHist[e.tdate]=e.td;
+      }
+    }
+  }
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function getStreak(n,a){return D[String(n)]?.[String(a)]?.streak||0;}
+function getTd(n,a){
+  const e=D[String(n)]?.[String(a)];
+  if(!e)return 0;
+  // Check dayHist first (covers all dates including past sessions)
+  if(e.dayHist&&e.dayHist[sessionDate]!=null)return e.dayHist[sessionDate];
+  // Fallback: live tdate/td for current unsaved entry
+  if(e.tdate===sessionDate) return e.td||0;
+  return 0;
+}
+function setM(n,a,v){D[String(n)][String(a)].streak=v;save();}
+function lvl(n,a){
+  const today=new Date().toISOString().slice(0,10);
+  // If viewing a past date, compute what the priority was on that specific day
+  if(sessionDate!==today){
+    return lvlForDate(n,a,sessionDate);
+  }
+  const s=getStreak(n,a);
+  if(s===0)return null;
+  const e=D[String(n)]?.[String(a)];
+  const rank={low:1,med:2,hi:3};
+  const streakLv=s===1?'low':s===2?'med':'hi';
+  const minLv=(s>0&&e?.minLevel)||'low';
+  const tdToday=getTd(n,a);
+  const tdLv=tdToday===3?'hi':tdToday===2?'med':'low';
+  let best=streakLv;
+  if(rank[minLv]>rank[best])best=minLv;
+  if(tdToday>0&&rank[tdLv]>rank[best])best=tdLv;
+  return best;
+}
+
+// Compute the priority level an ayah had AS OF a specific past date,
+// by replaying only the dayHist entries up to and including that date.
+function lvlForDate(n,a,date){
+  const e=D[String(n)]?.[String(a)];
+  if(!e||!e.dayHist)return null;
+  const rank={low:1,med:2,hi:3};
+  // Get all recorded days up to and including the target date, sorted
+  const days=Object.keys(e.dayHist).filter(d=>d<=date).sort();
+  if(!days.length)return null;
+  // Replay streak and minLevel up to that date
+  let streak=0;
+  let minLevel='low';
+  for(let i=0;i<days.length;i++){
+    const v=e.dayHist[days[i]];
+    if(v>0){
+      streak++;
+      const lv=v===3?'hi':v===2?'med':'low';
+      // Escalate: repeat day (streak>=2) with v>=2 => hi
+      if(streak>=2&&v>=2){
+        minLevel='hi';
+      } else if(rank[lv]>rank[minLevel]){
+        minLevel=lv;
+      }
+    }
+  }
+  if(streak===0)return null;
+  // Compute level as of that date
+  const streakLv=streak===1?'low':streak===2?'med':'hi';
+  const tdVal=e.dayHist[date]||0;
+  const tdLv=tdVal===3?'hi':tdVal===2?'med':'low';
+  let best=streakLv;
+  if(rank[minLevel]>rank[best])best=minLevel;
+  if(tdVal>0&&rank[tdLv]>rank[best])best=tdLv;
+  return best;
+}
+function getM(n,a){return getStreak(n,a);} // alias for compatibility
+function stats(n,c){let l=0,m=0,h=0;for(let a=1;a<=c;a++){const lv=lvl(n,a);if(lv==='low')l++;else if(lv==='med')m++;else if(lv==='hi')h++;}return{l,m,h};}
+function totalMistakes(n,c){let t=0;for(let a=1;a<=c;a++)t+=D[String(n)]?.[String(a)]?.streak||0;return t;}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+let _toastTimer=null;
+function toast(msg,bg='#22c55e',undoFn=null,undoDuration=4000){
+  const t=document.getElementById('toast');
+  if(_toastTimer){clearTimeout(_toastTimer);_toastTimer=null;}
+  const fg=bg==='#22c55e'?'#000':'#fff';
+  t.style.background=bg;t.style.color=fg;
+  if(undoFn){
+    t.innerHTML=`<span>${msg}</span><button class="toast-undo" onclick="_toastUndo()">Undo</button>`;
+    window._toastUndo=()=>{
+      t.classList.remove('show');
+      clearTimeout(_toastTimer);_toastTimer=null;
+      undoFn();
+    };
+    _toastTimer=setTimeout(()=>{t.classList.remove('show');_toastTimer=null;},undoDuration);
+  } else {
+    t.innerHTML=`<span>${msg}</span>`;
+    window._toastUndo=null;
+    _toastTimer=setTimeout(()=>{t.classList.remove('show');_toastTimer=null;},2600);
+  }
+  t.classList.add('show');
+}
+
+// ── NAV ───────────────────────────────────────────────────────────────────────
+function nav(name,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='summary')renderSummary();
+  if(name==='low')renderMistakes('low','list-low','cnt-low',1);
+  if(name==='high')renderMistakes('hi','list-hi','cnt-hi',3);
+  if(name==='med')renderMistakes('med','list-med','cnt-med',2);
+  if(name==='pages')renderPages();
+}
+
+// ── TREND HELPER ──────────────────────────────────────────────────────────────
+function getTrend(n){
+  const hist=D._hist2||{};
+  const sn=String(n);
+  const dates=Object.keys(hist).filter(d=>hist[d][sn]).sort();
+  if(dates.length<2)return null;
+  const last=dates[dates.length-1];
+  const prev=dates[dates.length-2];
+  const lastTotal=hist[last][sn]?.count||0;
+  const prevTotal=hist[prev][sn]?.count||0;
+  const diff=lastTotal-prevTotal;
+  return{diff,lastTotal,prevTotal};
+}
+
+// ── SUMMARY ───────────────────────────────────────────────────────────────────
+function renderSummary(){
+  let tl=0,tm=0,th=0;
+  const list=document.getElementById('sum-list');
+  list.innerHTML='';
+  for(const[n,name,c]of SURAHS){
+    const s=stats(n,c);tl+=s.l;tm+=s.m;th+=s.h;
+    if(!s.l&&!s.m&&!s.h)continue;
+    const trend=getTrend(n);
+    let trendHtml='';
+    if(trend){
+      if(trend.diff<0){
+        trendHtml=`<span style="font-size:0.7rem;font-weight:700;color:var(--low);flex-shrink:0;">↓${Math.abs(trend.diff)}</span>`;
+      } else if(trend.diff>0){
+        trendHtml=`<span style="font-size:0.7rem;font-weight:700;color:var(--hi);flex-shrink:0;">↑${trend.diff}</span>`;
+      } else {
+        trendHtml=`<span style="font-size:0.7rem;font-weight:700;color:var(--mu);flex-shrink:0;">—</span>`;
+      }
+    }
+    const tot=totalMistakes(n,c);
+    const el=document.createElement('div');
+    el.className='sum-item';
+    el.innerHTML=`<span class="s-num">${n}</span><span class="s-name">${name}</span><div class="badges">${s.h?`<span class="badge hi">${s.h}H</span>`:''} ${s.m?`<span class="badge med">${s.m}M</span>`:''} ${s.l?`<span class="badge low">${s.l}L</span>`:''}</div><span style="font-size:0.72rem;font-weight:700;color:#f87171;flex-shrink:0;">${tot}</span>`;
+    el.onclick=()=>{
+      document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+      document.getElementById('page-surahs').classList.add('active');
+      document.querySelectorAll('.nav-btn')[1].classList.add('active');
+      openSurah(n);
+    };
+    list.appendChild(el);
+  }
+  document.getElementById('t-low').textContent=tl;
+  document.getElementById('t-med').textContent=tm;
+  document.getElementById('t-hi').textContent=th;
+  if(!tl&&!tm&&!th)list.innerHTML='<div class="empty"><p>No mistakes recorded yet.<br>Go to Surahs to start tracking.</p></div>';
+  renderHistory();
+}
+
+// ── RESET ─────────────────────────────────────────────────────────────────────
+const SVG_RST='<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>';
+const SVG_WRN='<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>';
+const BTN_LABELS={'btn-low':'Reset All Low Mistakes','btn-med':'Reset All Medium Mistakes','btn-hi':'Reset All High Mistakes'};
+
+function doReset(label,val,btnId){
+  const btn=document.getElementById(btnId);
+  const origLabel=BTN_LABELS[btnId];
+  if(!confirmState[btnId]){
+    confirmState[btnId]=true;
+    btn.classList.add('confirm');
+    btn.innerHTML=SVG_WRN+' Tap again to confirm';
+    confirmTimer[btnId]=setTimeout(()=>{
+      confirmState[btnId]=false;
+      btn.classList.remove('confirm');
+      btn.innerHTML=SVG_RST+' '+origLabel;
+    },4000);
+    return;
+  }
+  clearTimeout(confirmTimer[btnId]);
+  confirmState[btnId]=false;
+  btn.classList.remove('confirm');
+  btn.innerHTML=SVG_RST+' '+origLabel;
+  let count=0;
+  for(const[n,,c]of SURAHS)
+    for(let a=1;a<=c;a++){
+      const lv=lvl(n,a);
+      const matches=(label==='low'&&lv==='low')||(label==='med'&&lv==='med')||(label==='high'&&lv==='hi');
+      if(matches){
+        const e=D[String(n)][String(a)];
+        e.streak=0;e.td=0;e.tdate=null;e.md=null;e.lastMistakeDate=null;e.minLevel=null;e.dayHist={};
+        count++;
+      }
+    }
+  save();
+  if(openNum)refreshAyahList(openNum);
+  for(const[n]of SURAHS)updateBadges(n);
+  renderSummary();
+  renderMistakes('low','list-low','cnt-low',1);
+  renderMistakes('hi','list-hi','cnt-hi',3);
+  renderMistakes('med','list-med','cnt-med',2);
+  toast(count>0?`✓ ${count} ${label.charAt(0).toUpperCase()+label.slice(1)} mistake${count>1?'s':''} reset to 0`:`No ${label} mistakes to reset`,count>0?'#22c55e':'#f59e0b');
+}
+
+// ── SURAHS ────────────────────────────────────────────────────────────────────
+function renderSurahList(){
+  const list=document.getElementById('surah-list');
+  list.innerHTML='';
+  for(const[n,name,c]of SURAHS){
+    const el=document.createElement('div');
+    el.className='si';el.id='si-'+n;
+    const s=stats(n,c);
+    const b=[s.h?`<span class="badge hi">${s.h}H</span>`:'',s.m?`<span class="badge med">${s.m}M</span>`:'',s.l?`<span class="badge low">${s.l}L</span>`:''  ].join('');
+    el.innerHTML=`<div class="si-hdr" onclick="openSurah(${n})"><div class="si-num">${n}</div><div class="si-info"><div class="si-name">${name}</div><div class="si-meta">${c} ayahs · <span id="bd-${n}">${b||'<span style="color:var(--mu);font-size:0.68rem">No mistakes</span>'}</span></div></div><svg class="exp-ico" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M19 9l-7 7-7-7"/></svg></div><div class="ayah-list" id="al-${n}" style="display:none"></div>`;
+    list.appendChild(el);
+  }
+}
+
+function openSurah(n){
+  if(openNum&&openNum!==n){
+    const old=document.getElementById('si-'+openNum);
+    if(old){old.classList.remove('open');document.getElementById('al-'+openNum).style.display='none';}
+  }
+  const item=document.getElementById('si-'+n);
+  const al=document.getElementById('al-'+n);
+  if(!item)return;
+  if(item.classList.contains('open')){item.classList.remove('open');al.style.display='none';openNum=null;return;}
+  item.classList.add('open');al.style.display='block';openNum=n;
+  if(!al.dataset.built){al.dataset.built='1';buildAyahList(n,al);}
+  else refreshAyahList(n);
+  setTimeout(()=>item.scrollIntoView({behavior:'smooth',block:'start'}),80);
+}
+
+function buildAyahList(n,container){
+  const[,,c]=SURAHS.find(s=>s[0]===n);
+  for(let a=1;a<=c;a++){
+    const row=document.createElement('div');
+    row.className='ar';row.id='ar-'+n+'-'+a;
+    container.appendChild(row);
+    renderRow(n,a);
+  }
+}
+
+function renderRow(n,a){
+  const row=document.getElementById('ar-'+n+'-'+a);if(!row)return;
+  const td=getTd(n,a);   // today's session count (0-3)
+  const m=getM(n,a);     // cumulative total
+  const lv=lvl(n,a);
+  const fhist=D[String(n)]?.[String(a)]?.fhist||[];
+  const lhtml=lv?`<span class="lp ${lv}">${lv==='low'?'Low':lv==='med'?'Med':'High'}</span>`:`<span class="lp none">—</span>`;
+
+  // Fix history indicators
+  let histHtml='';
+  if(fhist.length>0){
+    const icons=fhist.map(f=>
+      f==='manual'
+        ? `<span style="color:var(--low);font-size:0.72rem;font-weight:700;">✓</span>`
+        : `<span style="color:var(--acc2);font-size:0.9rem;line-height:1;">•</span>`
+    ).join('');
+    histHtml=`<div style="display:flex;flex-wrap:wrap;gap:2px;align-items:center;padding-left:2px;">${icons}</div>`;
+  }
+
+  // Cumulative total badge — removed from Surahs tab
+  row.style.display='flex';
+  row.style.flexWrap='wrap';
+  row.style.alignItems='center';
+  row.style.gap='6px';
+  row.style.padding='8px 11px';
+  row.innerHTML=`<span class="a-num" style="width:28px;flex-shrink:0;">${a}</span><div class="m-btns" style="flex-shrink:0;">${[0,1,2,3].map(v=>`<button class="mb${td===v?' a'+v:''}" onclick="setMistake(${n},${a},${v})">${v}</button>`).join('')}</div>${lhtml}${histHtml}`;
+}
+
+function refreshAyahList(n){const[,,c]=SURAHS.find(s=>s[0]===n);for(let a=1;a<=c;a++)renderRow(n,a);}
+
+// Streak-based mistake tracking
+const pendingHistory={};
+
+function setMistake(n,a,v){
+  const today=sessionDate;
+  const entry=D[String(n)][String(a)];
+  if(!entry.dayHist)entry.dayHist={};
+  const prevTd=entry.dayHist[today]!=null?entry.dayHist[today]:(entry.tdate===today?(entry.td||0):0);
+
+  // Save to dayHist
+  if(v>0){
+    entry.dayHist[today]=v;
+  } else {
+    delete entry.dayHist[today];
+  }
+  // Also keep tdate/td in sync for compatibility
+  entry.td=v;
+  entry.tdate=today;
+
+  // Update streak:
+  // - If marking a mistake today (v>0) and didn't have one today before → streak +1
+  // - If clearing today's mistake (v=0) and had one today → streak -1 (min 0)
+  // - If changing value (both >0) → streak stays the same
+  if(v>0&&prevTd===0){
+    entry.streak=(entry.streak||0)+1;
+    entry.lastMistakeDate=today;
+    entry.lc=today;
+  } else if(v===0&&prevTd>0){
+    entry.streak=Math.max(0,(entry.streak||0)-1);
+    entry.lc=today;
+    if(entry.streak===0){
+      entry.lastMistakeDate=null;
+      entry.minLevel=null;
+    }
+  }
+  if(entry.streak>0) entry.md=entry.lastMistakeDate||today;
+  else entry.md=null;
+
+  // Escalation logic:
+  // - On the FIRST day a mistake is recorded (streak=1): level is based purely on v (1=low,2=med,3=hi)
+  // - On SUBSEQUENT days (streak>=2): if v>=2, escalate minLevel to 'hi'
+  //   (because repeating ≥2 mistakes across multiple days = high priority)
+  // - Always clear minLevel when v=0 (user is resetting)
+  if(v===0){
+    // Clear minLevel if streak is now 0
+    if(entry.streak===0)entry.minLevel=null;
+  } else {
+    const rank={low:1,med:2,hi:3};
+    const newLv=v===3?'hi':v===2?'med':'low';
+    const curMin=entry.minLevel||'low';
+    // If this is a repeat day (streak>=2) and v>=2, escalate to hi
+    if(entry.streak>=2&&v>=2){
+      entry.minLevel='hi';
+    } else if(rank[newLv]>rank[curMin]){
+      entry.minLevel=newLv;
+    }
+  }
+
+  // History graph: sum of all td values for this surah on this date
+  if(!D._hist2)D._hist2={};
+  if(!D._hist2[today])D._hist2[today]={};
+  const sn=String(n);
+  const[,,c]=SURAHS.find(s=>s[0]===n);
+  let surahTotal=0;
+  for(let aa=1;aa<=c;aa++){
+    const e=D[sn]?.[String(aa)];
+    if(e){
+      const dayVal=e.dayHist?.[today]!=null?e.dayHist[today]:(e.tdate===today?(e.td||0):0);
+      surahTotal+=dayVal;
+    }
+  }
+  if(surahTotal>0) D._hist2[today][sn]={count:surahTotal};
+  else delete D._hist2[today][sn];
+  if(!Object.keys(D._hist2[today]).length) delete D._hist2[today];
+
+  save();renderRow(n,a);updateBadges(n);
+}
+
+// ── HISTORY DOT GRAPH ─────────────────────────────────────────────────────────
+let histDays=7;
+let sessionDate=new Date().toISOString().slice(0,10);
+
+function updateSessionDate(){
+  const val=document.getElementById('session-date').value;
+  if(val){
+    sessionDate=val;
+    // Re-render open surah so button highlights reflect the new date
+    if(openNum)refreshAyahList(openNum);
+    // Re-render badges and summary so level indicators update
+    for(const[n,,c]of SURAHS)updateBadges(n);
+    renderSummary();
+    renderMistakes('low','list-low','cnt-low',1);
+    renderMistakes('hi','list-hi','cnt-hi',3);
+    renderMistakes('med','list-med','cnt-med',2);
+  }
+}
+
+function resetSessionDate(){
+  sessionDate=new Date().toISOString().slice(0,10);
+  document.getElementById('session-date').value=sessionDate;
+  if(openNum)refreshAyahList(openNum);
+  for(const[n,,c]of SURAHS)updateBadges(n);
+  renderSummary();
+  renderMistakes('low','list-low','cnt-low',1);
+  renderMistakes('hi','list-hi','cnt-hi',3);
+  renderMistakes('med','list-med','cnt-med',2);
+}
+
+function clearSessionDate(){
+  sessionDate=new Date().toISOString().slice(0,10);
+  document.getElementById('session-date').value='';
+}
+
+let resetGraphPending=false, resetGraphTimer=null;
+
+function resetGraphs(){
+  const btn=document.getElementById('reset-graph-btn');
+  if(!resetGraphPending){
+    resetGraphPending=true;
+    btn.textContent='Confirm?';
+    btn.style.background='var(--hbg)';
+    resetGraphTimer=setTimeout(()=>{
+      resetGraphPending=false;
+      btn.textContent='Reset';
+      btn.style.background='';
+    },4000);
+    return;
+  }
+  clearTimeout(resetGraphTimer);
+  resetGraphPending=false;
+  btn.textContent='Reset';
+  btn.style.background='';
+  delete D._hist2;
+  save();
+  renderHistory();
+  toast('Graph history cleared');
+}
+
+const surahResetPending={};
+function resetSurahGraph(sn){
+  if(!surahResetPending[sn]){
+    surahResetPending[sn]=setTimeout(()=>{delete surahResetPending[sn];},4000);
+    toast('Tap Reset again to confirm');
+    return;
+  }
+  clearTimeout(surahResetPending[sn]);
+  delete surahResetPending[sn];
+  if(D._hist2){
+    Object.keys(D._hist2).forEach(d=>{
+      if(D._hist2[d]&&D._hist2[d][sn])delete D._hist2[d][sn];
+      if(D._hist2[d]&&!Object.keys(D._hist2[d]).length)delete D._hist2[d];
+    });
+    if(!Object.keys(D._hist2).length)delete D._hist2;
+  }
+  // Force immediate save to Firebase (not debounced)
+  cloudSave();
+  renderHistory();
+  toast('Graph reset for this Surah');
+}
+
+function setHistFilter(days,btn){
+  histDays=days;
+  document.querySelectorAll('.hist-filter').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderHistory();
+}
+
+function renderHistory(){
+  const wrap=document.getElementById('hist-wrap');
+  const hist=D._hist2||{};
+  const today=new Date().toISOString().slice(0,10);
+
+  // Get date range
+  let allDates=Object.keys(hist).sort();
+  if(histDays>0){
+    const cutoff=new Date();
+    cutoff.setDate(cutoff.getDate()-(histDays-1));
+    allDates=allDates.filter(d=>d>=cutoff.toISOString().slice(0,10));
+  }
+
+  wrap.innerHTML='';
+
+  if(!allDates.length){
+    wrap.innerHTML='<div class="hist-empty">No history yet for this period.<br>Start tracking to see your progress here.</div>';
+    return;
+  }
+
+  // Find all Surahs that have any data in this period
+  const surahSet=new Set();
+  allDates.forEach(d=>Object.keys(hist[d]||{}).forEach(sn=>surahSet.add(sn)));
+  const surahNums=[...surahSet].sort((a,b)=>Number(a)-Number(b));
+
+  if(!surahNums.length){
+    wrap.innerHTML='<div class="hist-empty">No history for this period.</div>';
+    return;
+  }
+
+  const W=Math.min((window.innerWidth||360)-40,560);
+  const H=140;
+  const PAD_L=30,PAD_R=10,PAD_T=22,PAD_B=30;
+  const gW=W-PAD_L-PAD_R;
+  const gH=H-PAD_T-PAD_B;
+
+  for(const sn of surahNums){
+    const surahInfo=SURAHS.find(s=>String(s[0])===sn);
+    if(!surahInfo)continue;
+    const surahName=surahInfo[1];
+
+    // Get totals for this surah across all dates in range
+    const points=allDates.map(d=>{
+      const e=hist[d]?.[sn];
+      return{date:d,total:e?(e.count||0):0};
+    }).filter(p=>p.total>0);
+
+    if(!points.length)continue;
+
+    // Use all dates that appear in the period as X axis (fill gaps with 0)
+    const allPts=allDates.map(d=>{
+      const e=hist[d]?.[sn];
+      return{date:d,total:e?(e.count||0):0};
+    });
+
+    const maxVal=Math.max(...allPts.map(p=>p.total),1);
+    const n=allPts.length;
+    const stepX=n>1?gW/(n-1):gW/2;
+
+    // Y ticks
+    const yTicks=[0,Math.round(maxVal/2),maxVal];
+
+    let svg=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block;overflow:visible;">`;
+
+    // Grid lines + Y labels
+    for(const v of yTicks){
+      const y=PAD_T+gH-(v/maxVal)*gH;
+      svg+=`<line x1="${PAD_L}" y1="${y}" x2="${W-PAD_R}" y2="${y}" stroke="#2a3045" stroke-width="1"/>`;
+      svg+=`<text x="${PAD_L-4}" y="${y+4}" text-anchor="end" font-size="9" fill="#7a8099">${v}</text>`;
+    }
+
+    // Line connecting non-zero points
+    const linePts=allPts.map((p,i)=>{
+      const x=PAD_L+(n===1?gW/2:i*stepX);
+      const y=PAD_T+gH-(p.total/maxVal)*gH;
+      return`${x},${y}`;
+    }).join(' ');
+    svg+=`<polyline points="${linePts}" fill="none" stroke="#6366f1" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="0.4"/>`;
+
+    // Dots + labels
+    allPts.forEach((p,i)=>{
+      const x=PAD_L+(n===1?gW/2:i*stepX);
+      const y=PAD_T+gH-(p.total/maxVal)*gH;
+      const isToday=p.date===today;
+      const[,mo,d]=p.date.split('-');
+      const lbl=isToday?'Today':`${d}/${mo}`;
+
+      // Find previous non-zero point for trend
+      let trendArrow='';
+      if(p.total>0){
+        const prevPt=allPts.slice(0,i).reverse().find(pp=>pp.total>0);
+        if(prevPt){
+          const diff=p.total-prevPt.total;
+          if(diff<0) trendArrow=`<tspan fill="#22c55e" font-size="8">↓${Math.abs(diff)}</tspan>`;
+          else if(diff>0) trendArrow=`<tspan fill="#ef4444" font-size="8">↑${diff}</tspan>`;
+        }
+      }
+
+      if(p.total>0){
+        svg+=`<circle cx="${x}" cy="${y}" r="${isToday?6:4}" fill="${isToday?'#818cf8':'#6366f1'}" stroke="${isToday?'#c7d2fe':'#818cf8'}" stroke-width="1.5"/>`;
+        svg+=`<text x="${x}" y="${y-9}" text-anchor="middle" font-size="9" font-weight="700" fill="#e8eaf0">${p.total}${trendArrow}</text>`;
+      } else {
+        svg+=`<circle cx="${x}" cy="${y}" r="2" fill="#2a3045"/>`;
+      }
+      // X label — only show for first, last, today, or if few points
+      if(i===0||i===n-1||isToday||n<=7){
+        svg+=`<text x="${x}" y="${H-4}" text-anchor="middle" font-size="8" fill="${isToday?'#818cf8':'#7a8099'}" font-weight="${isToday?700:400}">${lbl}</text>`;
+      }
+    });
+
+    svg+=`</svg>`;
+
+    const card=document.createElement('div');
+    card.style.cssText='background:var(--sur);border:1px solid var(--bd);border-radius:14px;padding:12px 8px 8px;margin-bottom:10px;overflow-x:auto;';
+
+    // Trend for this surah based on last 2 sessions in full history (not filtered)
+    const fullDates=Object.keys(hist).filter(d=>hist[d][sn]).sort();
+    let trendBadge='';
+    if(fullDates.length>=2){
+      const last=fullDates[fullDates.length-1];
+      const prev=fullDates[fullDates.length-2];
+      const lastT=(hist[last][sn]?.count||0);
+      const prevT=(hist[prev][sn]?.count||0);
+      const diff=lastT-prevT;
+      if(diff<0) trendBadge=`<span style="font-size:0.7rem;font-weight:700;color:var(--low);">↓${Math.abs(diff)}</span>`;
+      else if(diff>0) trendBadge=`<span style="font-size:0.7rem;font-weight:700;color:var(--hi);">↑${diff}</span>`;
+      else trendBadge=`<span style="font-size:0.7rem;font-weight:700;color:var(--mu);">—</span>`;
+    }
+
+    card.innerHTML=`<div style="font-size:0.78rem;font-weight:700;color:var(--tx);margin-bottom:8px;padding:0 4px;display:flex;justify-content:space-between;align-items:center;"><span>${surahInfo[0]}. ${surahName}</span><button onclick="resetSurahGraph('${sn}')" style="background:none;border:1px solid var(--hbd);color:var(--hi);font-size:0.65rem;font-weight:600;padding:2px 8px;border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;">Reset</button></div>${svg}`;
+    wrap.appendChild(card);
+  }
+}
+
+function updateBadges(n){
+  const[,,c]=SURAHS.find(s=>s[0]===n),s=stats(n,c),el=document.getElementById('bd-'+n);
+  if(el)el.innerHTML=[s.h?`<span class="badge hi">${s.h}H</span>`:'',s.m?`<span class="badge med">${s.m}M</span>`:'',s.l?`<span class="badge low">${s.l}L</span>`:''  ].join('')||'<span style="color:var(--mu);font-size:0.68rem">No mistakes</span>';
+}
+
+function filterSurahs(){
+  const q=document.getElementById('s-search').value.toLowerCase();let found=0;
+  for(const[n,name]of SURAHS){
+    const el=document.getElementById('si-'+n);if(!el)continue;
+    const show=name.toLowerCase().includes(q)||String(n).includes(q);
+    el.style.display=show?'':'none';if(show)found++;
+  }
+  document.getElementById('no-res').style.display=found?'none':'block';
+}
+
+// ── MISTAKE CARDS ─────────────────────────────────────────────────────────────
+function fmtDate(iso){if(!iso)return'—';const[y,m,d]=iso.split('-');return`${d}/${m}/${y}`;}
+
+function totalAyahMistakes(n,a){
+  const e=D[String(n)]?.[String(a)];
+  if(!e||!e.dayHist)return 0;
+  return Object.values(e.dayHist).reduce((s,v)=>s+(v||0),0);
+}
+function renderMistakes(lv,listId,cntId,val){
+  const listEl=document.getElementById(listId);
+  const cntEl=document.getElementById(cntId);
+  listEl.innerHTML='';
+
+  // Collect all matching ayahs
+  const items=[];
+  for(const[n,name,c]of SURAHS){
+    for(let a=1;a<=c;a++){
+      if(lvl(n,a)!==lv)continue;
+      const fd=FD[String(n)]?.[String(a)]||'';
+      const md=D[String(n)]?.[String(a)]?.md||null;
+      items.push({n,name,a,fd,md});
+    }
+  }
+
+  // Sort by total mistakes descending (most mistakes at top)
+  items.sort((a,b)=>{
+    const ma=totalAyahMistakes(a.n,a.a);
+    const mb=totalAyahMistakes(b.n,b.a);
+    return mb-ma;
+  });
+
+  const today2=new Date().toISOString().slice(0,10);
+  const lvClass=lv==='hi'?'hc':lv==='med'?'mc':'lc';
+  for(const{n,name,a,fd,md}of items){
+    const isPast=fd&&fd<today2;
+    const isToday2=fd&&fd===today2;
+    const card=document.createElement('div');
+    card.className='mcard '+lvClass;
+    if(isPast) card.style.cssText='border-color:var(--hi);background:rgba(40,13,13,0.9);';
+    else if(isToday2) card.style.cssText='border-color:#3b82f6;background:rgba(13,20,40,0.9);';
+    let dueBadge='';
+    if(isPast) dueBadge='<span style="display:block;font-size:0.65rem;color:var(--hi);font-weight:700;margin-top:2px;">⚠ Fix date passed</span>';
+    else if(isToday2) dueBadge='<span style="display:block;font-size:0.65rem;color:#60a5fa;font-weight:700;margin-top:2px;">📅 Fix today</span>';
+    const totalM=totalAyahMistakes(n,a);
+    const mistakeColor=lv==='hi'?'var(--hi)':lv==='med'?'var(--med)':'var(--low)';
+    // Determine auto-computed level vs manual override
+    const entry=D[String(n)]?.[String(a)];
+    const manualMin=entry?.minLevel||null;
+    const activeLv=lv; // current effective level
+    card.innerHTML=`
+      <div class="mcard-in">
+        <div class="mcard-an">${a}</div>
+        <div class="mcard-sub">
+          <strong>${name}</strong>
+          Surah ${n} · Ayah ${a}
+          ${dueBadge}
+          <span class="marked-date">Marked: ${fmtDate(md)}</span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;gap:2px;">
+          <span style="font-size:1.5rem;font-weight:700;line-height:1;color:${mistakeColor};">${totalM}</span>
+          <span style="font-size:0.58rem;color:var(--mu);text-align:center;line-height:1.2;">total<br>mistakes</span>
+        </div>
+      </div>
+      <div class="pri-row">
+        <span class="pri-lbl">Priority:</span>
+        <div class="pri-pills">
+          <button class="pri-pill${activeLv==='low'?' active-low':''}" onclick="setPriorityOverride(${n},${a},'low')">🟢 Low</button>
+          <button class="pri-pill${activeLv==='med'?' active-med':''}" onclick="setPriorityOverride(${n},${a},'med')">🟡 Med</button>
+          <button class="pri-pill${activeLv==='hi'?' active-hi':''}" onclick="setPriorityOverride(${n},${a},'hi')">🔴 High</button>
+        </div>
+      </div>
+      <div class="fix-row">
+        <span class="fix-lbl">Fix on:</span>
+        <input type="date" class="fix-dt" value="${fd}" onchange="setFix(${n},${a},this.value)">
+        <button onclick="setFix(${n},${a},'')" style="background:none;border:none;color:var(--hi);font-size:0.9rem;cursor:pointer;padding:0 2px;line-height:1;flex-shrink:0;">✕</button>
+        <button class="fix-btn" onclick="markFixed(${n},${a},'${lv}','${listId}','${cntId}',${val})">Mark fixed</button>
+      </div>`;
+    listEl.appendChild(card);
+  }
+
+  cntEl.textContent=items.length;
+  const lvName=lv==='hi'?'High':lv==='med'?'Medium':'Low';
+  if(!items.length)listEl.innerHTML=`<div class="empty"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><p>No ${lvName} mistakes.<br>Keep it up!</p></div>`;
+}
+
+function setFix(n,a,v){
+  if(!FD[String(n)])FD[String(n)]={};
+  FD[String(n)][String(a)]=v||null;
+  save();
+  renderMistakes('low','list-low','cnt-low',1);
+  renderMistakes('hi','list-hi','cnt-hi',3);
+  renderMistakes('med','list-med','cnt-med',2);
+}
+
+function setPriorityOverride(n,a,newLv){
+  const entry=D[String(n)][String(a)];
+  // Only override minLevel — never touch streak or other tracking fields
+  entry.minLevel=newLv;
+  save();
+  renderMistakes('low','list-low','cnt-low',1);
+  renderMistakes('hi','list-hi','cnt-hi',3);
+  renderMistakes('med','list-med','cnt-med',2);
+  updateBadges(n);
+  if(openNum===n)renderRow(n,a);
+}
+
+function markFixed(n,a,lv,listId,cntId,val){
+  const surahInfo=SURAHS.find(s=>s[0]===n);
+  const surahName=surahInfo?surahInfo[1]:`Surah ${n}`;
+  const entry=D[String(n)][String(a)];
+  // Snapshot for undo
+  const snap=JSON.parse(JSON.stringify(entry));
+  const snapFD=FD[String(n)]?.[String(a)]||null;
+
+  entry.streak=0;
+  entry.td=0;
+  entry.tdate=null;
+  entry.md=null;
+  entry.lastMistakeDate=null;
+  entry.minLevel=null;
+  entry.dayHist={};
+  if(!entry.fhist)entry.fhist=[];
+  entry.fhist.push('manual');
+  entry.lc=new Date().toISOString().slice(0,10);
+  save();
+  renderMistakes('low','list-low','cnt-low',1);
+  renderMistakes('hi','list-hi','cnt-hi',3);
+  renderMistakes('med','list-med','cnt-med',2);
+  updateBadges(n);
+  if(openNum===n)renderRow(n,a);
+  renderSummary();
+
+  toast(
+    `✓ Fixed: ${surahName} · Ayah ${a}`,
+    '#22c55e',
+    ()=>{
+      // Undo: restore entry
+      D[String(n)][String(a)]=snap;
+      if(!FD[String(n)])FD[String(n)]={};
+      FD[String(n)][String(a)]=snapFD;
+      save();
+      renderMistakes('low','list-low','cnt-low',1);
+      renderMistakes('hi','list-hi','cnt-hi',3);
+      renderMistakes('med','list-med','cnt-med',2);
+      updateBadges(n);
+      if(openNum===n)renderRow(n,a);
+      renderSummary();
+      toast('↩ Undone','#6366f1');
+    },
+    4000
+  );
+}
+
+// ── PIN ───────────────────────────────────────────────────────────────────────
+const CORRECT_PIN='482951';
+let pinEntry='';
+
+function pinKey(k){
+  const err=document.getElementById('pin-error');
+  err.textContent='';
+  if(k==='backspace'){
+    pinEntry=pinEntry.slice(0,-1);
+  } else if(k==='enter'){
+    if(pinEntry===CORRECT_PIN){
+      document.getElementById('pin-screen').style.display='none';
+      sessionStorage.setItem('pin_ok','1');
+    } else {
+      err.textContent='Incorrect PIN — try again';
+      pinEntry='';
+    }
+  } else {
+    if(pinEntry.length<6) pinEntry+=k;
+    if(pinEntry.length===6) setTimeout(()=>pinKey('enter'),120);
+  }
+  // update dots
+  const dots=document.querySelectorAll('.pdot');
+  dots.forEach((d,i)=>d.classList.toggle('filled',i<pinEntry.length));
+}
+
+// ── AUTO DEMOTION ─────────────────────────────────────────────────────────────
+function applyDemotions(){
+  const today=new Date().toISOString().slice(0,10);
+  const oneWeekAgo=new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate()-7);
+  const cutoff=oneWeekAgo.toISOString().slice(0,10);
+  let changed=false;
+  for(const[n,,c]of SURAHS){
+    const sn=String(n);
+    for(let a=1;a<=c;a++){
+      const entry=D[sn]?.[String(a)];
+      if(!entry||!entry.streak)continue;
+      // High (streak>=3) never auto-demoted
+      if(entry.streak>=3)continue;
+      const lc=entry.lc||entry.md||null;
+      if(!lc||lc>cutoff)continue;
+      entry.streak=Math.max(0,entry.streak-1);
+      if(entry.streak===0){
+        entry.md=null;
+        entry.lastMistakeDate=null;
+        if(!entry.fhist)entry.fhist=[];
+        entry.fhist.push('auto');
+      }
+      entry.lc=today;
+      changed=true;
+    }
+  }
+  if(changed){save();return true;}
+  return false;
+}
+
+// ── PAGES TO REVIEW ───────────────────────────────────────────────────────────
+// Madinah Mushaf (standard 604-page): page on which each surah starts.
+// PAGE_START[surahNum] = first page of that surah.
+const PAGE_START={
+  1:1,2:2,3:50,4:77,5:106,6:128,7:151,8:177,9:187,10:208,
+  11:221,12:235,13:249,14:255,15:262,16:267,17:282,18:293,19:305,20:312,
+  21:322,22:332,23:342,24:350,25:359,26:367,27:377,28:385,29:396,30:404,
+  31:411,32:415,33:418,34:428,35:434,36:440,37:446,38:453,39:458,40:467,
+  41:477,42:483,43:489,44:496,45:499,46:502,47:507,48:511,49:515,50:518,
+  51:520,52:523,53:526,54:528,55:531,56:534,57:537,58:542,59:545,60:549,
+  61:551,62:553,63:554,64:556,65:558,66:560,67:562,68:564,69:566,70:568,
+  71:570,72:572,73:574,74:575,75:577,76:578,77:580,78:582,79:583,80:585,
+  81:586,82:587,83:587,84:589,85:590,86:591,87:591,88:592,89:593,90:594,
+  91:595,92:595,93:596,94:596,95:597,96:597,97:598,98:598,99:599,100:599,
+  101:600,102:600,103:601,104:601,105:601,106:602,107:602,108:602,109:603,
+  110:603,111:603,112:604,113:604,114:604
+};
+
+// Derive ayah→page using line-by-line count heuristic:
+// average ayahs per page ≈ (totalAyahs of surah) / (pages spanned).
+// We use a precomputed lookup for speed: given surahNum and ayahNum → page.
+function ayahPage(surahNum, ayahNum){
+  const[,,c]=SURAHS.find(s=>s[0]===surahNum)||[,,1];
+  const startPage=PAGE_START[surahNum]||1;
+  const nextSurah=surahNum+1;
+  const endPage=PAGE_START[nextSurah]||(startPage+Math.ceil(c/15));
+  const span=Math.max(endPage-startPage,1);
+  // Linear interpolation — ayah 1 lands on startPage, last ayah on endPage-1
+  return startPage+Math.floor(((ayahNum-1)/c)*span);
+}
+
+let pgSort='total';
+
+function setPgSort(mode,btn){
+  pgSort=mode;
+  document.querySelectorAll('.pg-sort-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderPages();
+}
+
+function renderPages(){
+  const list=document.getElementById('pages-list');
+  if(!list)return;
+  list.innerHTML='';
+
+  // Aggregate mistakes by page
+  const pageData={}; // page → {total,hi,med,low,surahs:Set}
+  for(const[n,name,c]of SURAHS){
+    for(let a=1;a<=c;a++){
+      const lv=lvl(n,a);
+      if(!lv)continue;
+      const p=ayahPage(n,a);
+      if(!pageData[p])pageData[p]={total:0,hi:0,med:0,low:0,surahs:new Set()};
+      const totalM=totalAyahMistakes(n,a);
+      pageData[p].total+=totalM||1; // count by occurrence if no total
+      if(lv==='hi')pageData[p].hi++;
+      else if(lv==='med')pageData[p].med++;
+      else pageData[p].low++;
+      pageData[p].surahs.add(name);
+    }
+  }
+
+  const pages=Object.keys(pageData).map(p=>({page:Number(p),...pageData[p]}));
+
+  if(!pages.length){
+    list.innerHTML='<div class="empty"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><p>No mistakes recorded yet.<br>Go to Surahs to start tracking.</p></div>';
+    return;
+  }
+
+  // Sort
+  if(pgSort==='total') pages.sort((a,b)=>b.total-a.total||b.hi-a.hi);
+  else if(pgSort==='high') pages.sort((a,b)=>b.hi-a.hi||b.total-a.total);
+  else pages.sort((a,b)=>a.page-b.page);
+
+  const maxTotal=Math.max(...pages.map(p=>p.total),1);
+
+  pages.forEach((p,i)=>{
+    const barPct=Math.round((p.total/maxTotal)*100);
+    const barColor=p.hi>0?'var(--hi)':p.med>0?'var(--med)':'var(--low)';
+    const surahList=[...p.surahs].join(', ');
+
+    // Collect ayahs on this page with mistakes
+    const ayahsOnPage=[];
+    for(const[n,name,c]of SURAHS){
+      for(let a=1;a<=c;a++){
+        const lv=lvl(n,a);
+        if(!lv)continue;
+        if(ayahPage(n,a)!==p.page)continue;
+        const totalM=totalAyahMistakes(n,a);
+        ayahsOnPage.push({n,name,a,lv,totalM});
+      }
+    }
+    // Sort ayahs: high first, then by mistake count
+    const lvRank={hi:3,med:2,low:1};
+    ayahsOnPage.sort((a,b)=>lvRank[b.lv]-lvRank[a.lv]||b.totalM-a.totalM);
+
+    const ayahRowsHtml=ayahsOnPage.map(({n,name,a,lv,totalM})=>`
+      <div class="pg-ayah-row" onclick="navToAyah(${n},${a})" style="cursor:pointer;">
+        <span style="font-size:0.68rem;color:var(--mu);width:22px;flex-shrink:0;font-weight:600;">${a}</span>
+        <span style="font-size:0.82rem;font-weight:600;flex:1;">${name}</span>
+        <span class="badge ${lv}">${lv==='hi'?'High':lv==='med'?'Med':'Low'}</span>
+        <span style="font-size:0.78rem;font-weight:700;color:${lv==='hi'?'var(--hi)':lv==='med'?'var(--med)':'var(--low)'};width:28px;text-align:right;">${totalM}</span>
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" style="color:var(--mu);flex-shrink:0;"><path d="M9 18l6-6-6-6"/></svg>
+      </div>`).join('');
+
+    const card=document.createElement('div');
+    card.className='pg-card';
+    card.innerHTML=`
+      <div class="pg-top" style="cursor:pointer;">
+        <span class="pg-rank" style="color:var(--mu);">${pgSort!=='page'?'#'+(i+1):''}</span>
+        <div class="pg-num"><span>${p.page}</span><small>page</small></div>
+        <div class="pg-info">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            ${p.hi?`<span class="badge hi">${p.hi}H</span>`:''}
+            ${p.med?`<span class="badge med">${p.med}M</span>`:''}
+            ${p.low?`<span class="badge low">${p.low}L</span>`:''}
+            <span style="font-size:0.68rem;color:var(--mu);">${p.total} total</span>
+          </div>
+          <div class="pg-surahs">${surahList}</div>
+        </div>
+        <svg class="pg-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M19 9l-7 7-7-7"/></svg>
+      </div>
+      <div class="pg-bar-wrap"><div class="pg-bar" style="width:${barPct}%;background:${barColor};"></div></div>
+      <div class="pg-ayah-list">${ayahRowsHtml}</div>`;
+
+    card.querySelector('.pg-top').onclick=()=>card.classList.toggle('open');
+    list.appendChild(card);
+  });
+}
+
+function navToAyah(n,a){
+  document.querySelectorAll('.page').forEach(pg=>pg.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-surahs').classList.add('active');
+  document.querySelectorAll('.nav-btn')[1].classList.add('active');
+  openSurah(n);
+  // Wait for the surah to expand and rows to render, then scroll to the ayah
+  setTimeout(()=>{
+    const row=document.getElementById('ar-'+n+'-'+a);
+    if(row){
+      row.scrollIntoView({behavior:'smooth',block:'center'});
+      row.style.transition='background 0.2s';
+      row.style.background='rgba(99,102,241,0.18)';
+      setTimeout(()=>{row.style.background='';},1200);
+    }
+  },350);
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+async function init(){
+  if(sessionStorage.getItem('pin_ok')==='1'){
+    document.getElementById('pin-screen').style.display='none';
+  }
+  // Set session date picker to today
+  document.getElementById('session-date').value=sessionDate;
+  await cloudLoad();
+  applyDemotions(); // auto-demote any mistakes older than 7 days
+  document.getElementById('loading').classList.add('hidden');
+  renderSummary();
+  renderSurahList();
+  renderMistakes('low','list-low','cnt-low',1);
+  renderMistakes('hi','list-hi','cnt-hi',3);
+  renderMistakes('med','list-med','cnt-med',2);
+}
+init();
+</script>
+</body>
+</html>
